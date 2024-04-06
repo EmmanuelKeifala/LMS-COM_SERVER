@@ -88,7 +88,7 @@ export const gameGeneration = CatchAsyncErrors(
       await db.question.createMany({
         data: manyData,
       });
-      res.status(200).json({success: true, data: game});
+      res.status(200).json({success: true, gameId: game.id});
     } catch (error: any) {
       return next(new ErrorHandler(error.message, 400));
     }
