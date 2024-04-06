@@ -27,7 +27,8 @@ async function sendEmailBatch(emails: any[], data: any) {
 export const sendEmails = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const {data} = await req.body;
+      const {subject, messageBody, userCategory} = await req.body;
+
       // Fetch users from the external API
       const response = await axios.get(
         `https://api.clerk.com/v1/users?limit=499`,
@@ -51,8 +52,8 @@ export const sendEmails = CatchAsyncErrors(
       let userIDsToCheck: string[] = [];
 
       if (
-        data.userCategory === 'courseNotCompleted' ||
-        data.userCategory === 'noCourse'
+        userCategory === 'courseNotCompleted' ||
+        userCategory === 'noCourse'
       ) {
         // Fetch user IDs to check from the database
         userIDsToCheck = await db.userProgress
@@ -66,9 +67,9 @@ export const sendEmails = CatchAsyncErrors(
       // Process users based on userCategory
       response.data.forEach((user: any) => {
         if (
-          !data.userCategory ||
+          !userCategory ||
           !user.public_metadata.userClass ||
-          (data.userCategory === 'courseNotCompleted' &&
+          (userCategory === 'courseNotCompleted' &&
             !userIDsToCheck.includes(user.id))
         ) {
           pushUserDetails(user);
@@ -83,6 +84,10 @@ export const sendEmails = CatchAsyncErrors(
         const batch = userData.slice(i, i + batchSize);
 
         // Parallelize email sending within a batch
+        const data = {
+          messageBody,
+          subject,
+        };
         await Promise.all(batch.map(user => sendEmailBatch([user], data)));
         // Introduce a delay between batches
         if (i + batchSize < userData.length) {
