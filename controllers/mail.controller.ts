@@ -7,7 +7,6 @@ import axios from 'axios';
 const db = new PrismaClient();
 
 async function sendEmailBatch(emails: any[], data: any) {
-  console.log('data', data);
   const emailPromises = emails.map(async (user: any) => {
     try {
       await transporter.sendMail({
@@ -25,7 +24,6 @@ async function sendEmailBatch(emails: any[], data: any) {
     }
   });
 
-  // Wait for all emails in the batch to be sent
   await Promise.all(emailPromises);
 }
 
