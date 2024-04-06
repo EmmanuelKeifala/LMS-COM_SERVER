@@ -7,17 +7,22 @@ import axios from 'axios';
 const db = new PrismaClient();
 
 async function sendEmailBatch(emails: any[], data: any) {
+  console.log('data', data);
   const emailPromises = emails.map(async (user: any) => {
-    await transporter.sendMail({
-      from: '"meyoneducation" <meyoneducationhub@gmail.com>',
-      to: user.email,
-      subject: data.subject,
-      html: `
+    try {
+      await transporter.sendMail({
+        from: '"meyoneducation" <meyoneducationhub@gmail.com>',
+        to: user.email,
+        subject: data.subject,
+        html: `
         <p>Dear ${user.name},</p>
         ${data.messageBody}
         <p><strong>Best regards,<br />David Moses Ansumana</strong></p>
         <p><em>meyoneducation Team</em></p>`,
-    });
+      });
+    } catch (error: any) {
+      return next(new ErrorHandler(error.message, 400));
+    }
   });
 
   // Wait for all emails in the batch to be sent
@@ -28,7 +33,11 @@ export const sendEmails = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const {subject, messageBody, userCategory} = await req.body;
-
+      if (!subject || !messageBody || !userCategory) {
+        return next(
+          new ErrorHandler('Please provide all required fields', 400),
+        );
+      }
       // Fetch users from the external API
       const response = await axios.get(
         `https://api.clerk.com/v1/users?limit=499`,
@@ -82,7 +91,6 @@ export const sendEmails = CatchAsyncErrors(
       // Send emails in batches
       for (let i = 0; i < userData.length; i += batchSize) {
         const batch = userData.slice(i, i + batchSize);
-
         // Parallelize email sending within a batch
         const data = {
           messageBody,
@@ -101,3 +109,6 @@ export const sendEmails = CatchAsyncErrors(
     }
   },
 );
+function next(arg0: ErrorHandler) {
+  throw new Error('Function not implemented.');
+}
