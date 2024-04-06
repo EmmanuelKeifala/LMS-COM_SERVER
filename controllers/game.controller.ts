@@ -3,11 +3,19 @@ import {Request, Response, NextFunction, raw} from 'express';
 import ErrorHandler from '../utils/ErrorHandler';
 import {PrismaClient} from '@prisma/client';
 import axios from 'axios';
+
+import clerkClient from '@clerk/clerk-sdk-node';
+
 const db = new PrismaClient();
 export const gameGeneration = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const {userId, amount, topic, type} = await req.body;
+      // Validation
+      if (!userId || !amount || !topic || !type)
+        return next(new ErrorHandler('Please provide all fields', 400));
+      const user = await clerkClient.users.getUser(userId);
+      if (!user) return next(new ErrorHandler('User not found', 400));
 
       const game = await db.game.create({
         data: {
