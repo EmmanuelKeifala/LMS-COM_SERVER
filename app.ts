@@ -12,7 +12,6 @@ import questionRoute from './routes/questions.route';
 import gameRouter from './routes/game.route';
 import {endGame} from './controllers/endGame.controller';
 import sendMailRouter from './routes/sendMail.route';
-import {checkAnswer} from './controllers/checkAnswer.controller';
 
 export const app = express();
 
@@ -28,14 +27,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // Primary routes
-app.use(
-  '/api/v1',
-  questionRoute,
-  gameRouter,
-  endGame,
-  sendMailRouter,
-  checkAnswer,
-);
+app.use('/api/v1', questionRoute, gameRouter, endGame, sendMailRouter);
 
 // Unknow api route request
 app.all('*', (req: Request, res: Response, next: NextFunction) => {
