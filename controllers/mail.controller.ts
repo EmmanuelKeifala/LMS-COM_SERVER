@@ -4,23 +4,28 @@ import {transporter} from '../utils/sendMail';
 import ErrorHandler from '../utils/ErrorHandler';
 import {PrismaClient} from '@prisma/client';
 import axios from 'axios';
+
 const db = new PrismaClient();
 
-async function sendEmailBatch(emails: any[], data: any) {
+async function sendEmailBatch(
+  emails: any[],
+  subject: string,
+  messageBody: string,
+) {
   const emailPromises = emails.map(async (user: any) => {
     try {
       await transporter.sendMail({
         from: '"meyoneducation" <meyoneducationhub@gmail.com>',
         to: user.email,
-        subject: data.subject,
+        subject: subject,
         html: `
-        <p>Dear ${user.name},</p>
-        ${data.messageBody}
-        <p><strong>Best regards,<br />David Moses Ansumana</strong></p>
-        <p><em>meyoneducation Team</em></p>`,
+          <p>Dear ${user.name},</p>
+          ${messageBody}
+          <p><strong>Best regards,<br />David Moses Ansumana</strong></p>
+          <p><em>meyoneducation Team</em></p>`,
       });
     } catch (error: any) {
-      return next(new ErrorHandler(error.message, 400));
+      throw new ErrorHandler(error.message, 400);
     }
   });
 
@@ -30,12 +35,13 @@ async function sendEmailBatch(emails: any[], data: any) {
 export const sendEmails = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const {subject, messageBody, userCategory} = await req.body;
+      const {subject, messageBody, userCategory} = req.body;
+
+      // Check if required fields are provided
       if (!subject || !messageBody || !userCategory) {
-        return next(
-          new ErrorHandler('Please provide all required fields', 400),
-        );
+        throw new ErrorHandler('Please provide all required fields', 400);
       }
+
       // Fetch users from the external API
       const response = await axios.get(
         `https://api.clerk.com/v1/users?limit=499`,
@@ -49,6 +55,7 @@ export const sendEmails = CatchAsyncErrors(
 
       const userData: any[] = [];
 
+      // Function to push user details into userData array
       const pushUserDetails = (user: any) => {
         userData.push({
           name: user?.first_name || 'Student',
@@ -58,11 +65,11 @@ export const sendEmails = CatchAsyncErrors(
 
       let userIDsToCheck: string[] = [];
 
+      // Fetch user IDs to check based on userCategory
       if (
         userCategory === 'courseNotCompleted' ||
         userCategory === 'noCourse'
       ) {
-        // Fetch user IDs to check from the database
         userIDsToCheck = await db.userProgress
           .findMany({
             where: {isCompleted: false},
@@ -86,15 +93,14 @@ export const sendEmails = CatchAsyncErrors(
       // Set the batch size and delay between batches
       const batchSize = 50;
       const delayBetweenBatches = 5000;
+
       // Send emails in batches
       for (let i = 0; i < userData.length; i += batchSize) {
         const batch = userData.slice(i, i + batchSize);
+
         // Parallelize email sending within a batch
-        const data = {
-          messageBody,
-          subject,
-        };
-        await Promise.all(batch.map(user => sendEmailBatch([user], data)));
+        await sendEmailBatch(batch, subject, messageBody);
+
         // Introduce a delay between batches
         if (i + batchSize < userData.length) {
           await new Promise(resolve =>
@@ -102,11 +108,8 @@ export const sendEmails = CatchAsyncErrors(
           );
         }
       }
-    } catch (error: any) {
-      return next(new ErrorHandler(error.message, 400));
+    } catch (error) {
+      return next(error);
     }
   },
 );
-function next(arg0: ErrorHandler) {
-  throw new Error('Function not implemented.');
-}
