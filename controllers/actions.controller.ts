@@ -3,7 +3,10 @@ import {CatchAsyncErrors} from '../middleware/catchAsyncErrors';
 import ErrorHandler from '../utils/ErrorHandler';
 import {Category, Chapter, Course, Level, PrismaClient} from '@prisma/client';
 import {getProgress} from '../utils/get-progress';
-const db = new PrismaClient();
+
+import {withAccelerate} from '@prisma/extension-accelerate';
+
+const db = new PrismaClient().$extends(withAccelerate());
 
 type CourseWithProgressWithCategory = Course & {
   category: Category;
@@ -41,6 +44,7 @@ export const getDashboardCourses = CatchAsyncErrors(
             },
           },
         },
+        cacheStrategy: {swr: 60, ttl: 60},
       });
       const courseIds = purchasedCourses.map(purchase => purchase.course.id);
       const progressPromises = courseIds.map(courseId =>

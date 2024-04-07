@@ -21,6 +21,7 @@
     "@clerk/backend": "^0.38.6",
     "@clerk/clerk-sdk-node": "^4.13.14",
     "@prisma/client": "^5.12.1",
+    "@prisma/extension-accelerate": "^1.0.0",
     "@sanity/client": "^6.4.12",
     "@types/cookie-parser": "^1.4.4",
     "@types/cors": "^2.8.14",
