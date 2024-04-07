@@ -21,7 +21,7 @@ async function sendEmailBatch(
         html: `
           <p>Dear ${user.name},</p>
           ${messageBody}
-          <p><strong>Best regards,<br />David Moses Ansumana</strong></p>
+          <p><strong>Best regards,</p>
           <p><em>meyoneducation Team</em></p>`,
       });
     } catch (error: any) {
