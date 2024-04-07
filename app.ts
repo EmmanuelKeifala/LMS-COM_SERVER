@@ -13,6 +13,7 @@ import gameRouter from './routes/game.route';
 import sendMailRouter from './routes/sendMail.route';
 import endGameRouter from './routes/endGame.route';
 import actionRouter from './routes/actions.route';
+import libraryRouter from './routes/library.route';
 
 export const app = express();
 
@@ -35,6 +36,7 @@ app.use(
   endGameRouter,
   sendMailRouter,
   actionRouter,
+  libraryRouter,
 );
 
 // Unknow api route request
