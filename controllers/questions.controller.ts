@@ -25,14 +25,17 @@ export const generateQuestions = CatchAsyncErrors(
       // Define a maximum chunk size
       const chunkSize = 5; // Adjust this value as needed
 
+      // Calculate the number of batches needed based on amount and chunkSize
+      const batches = Math.ceil(amount / chunkSize);
+
       // Create an array to hold all generated questions
       let allQuestions: any[] = [];
 
-      // Create prompts based on the requested amount in batches
-      for (let i = 0; i < amount; i += chunkSize) {
+      // Create prompts for all batches
+      for (let i = 0; i < batches; i++) {
         const prompts: string[] = [];
         // Generate prompts for the current batch
-        for (let j = i; j < Math.min(i + chunkSize, amount); j++) {
+        for (let j = 0; j < chunkSize && i * chunkSize + j < amount; j++) {
           prompts.push(
             `You are to generate a random hard ${type} question about ${topic}`,
           );
