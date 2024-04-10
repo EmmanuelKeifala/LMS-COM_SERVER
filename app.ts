@@ -8,13 +8,15 @@ import cookieParser from 'cookie-parser';
 
 // File Imports
 import {ErrorMiddleware} from './middleware/error';
-import questionRoute from './routes/questions.route';
-import gameRouter from './routes/game.route';
-import sendMailRouter from './routes/sendMail.route';
-import endGameRouter from './routes/endGame.route';
-import actionRouter from './routes/actions.route';
-import libraryRouter from './routes/library.route';
-
+import {
+  questionRoute,
+  gameRouter,
+  endGameRouter,
+  sendMailRouter,
+  actionRouter,
+  libraryRouter,
+  notificationRouter,
+} from './routes';
 export const app = express();
 
 // Body parser
@@ -37,6 +39,7 @@ app.use(
   sendMailRouter,
   actionRouter,
   libraryRouter,
+  notificationRouter,
 );
 
 // Unknow api route request

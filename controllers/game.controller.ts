@@ -42,7 +42,6 @@ export const gameGeneration = CatchAsyncErrors(
 
       const {data} = await axios.post(
         `${process.env.NEXT_PUBLIC_APP_URL}/question`,
-        // `http://localhost:3000/api/quiz/questions`,
         {
           amount,
           topic,

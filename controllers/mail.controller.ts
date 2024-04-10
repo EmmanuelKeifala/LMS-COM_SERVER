@@ -108,6 +108,8 @@ export const sendEmails = CatchAsyncErrors(
           );
         }
       }
+
+      res.status(200).json({success: true});
     } catch (error) {
       return next(error);
     }
