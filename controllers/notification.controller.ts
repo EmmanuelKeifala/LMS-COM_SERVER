@@ -5,6 +5,7 @@ import path from 'path';
 import ejs from 'ejs';
 import sendEJSEmail from '../utils/sendEjsMail';
 import clerkClient from '@clerk/clerk-sdk-node';
+import axios from 'axios';
 export const blogNotification = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -45,12 +46,16 @@ export const blogNotification = CatchAsyncErrors(
         }
       });
 
-      return res.status(200).json({
-        success: true,
-        data: {
+      await axios.post(
+        'https://meyoneducation.vercel.app/api/notifications/webhook',
+        {
           usersWithSubscriptions,
           event,
         },
+      );
+
+      return res.status(200).json({
+        success: true,
       });
     } catch (error) {
       return next(new ErrorHandler('internal sever error', 500));
