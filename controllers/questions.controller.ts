@@ -44,7 +44,7 @@ export const generateQuestions = CatchAsyncErrors(
         let questionsBatch: any;
         if (type === 'open_ended') {
           questionsBatch = await strict_output(
-            'As a helpful AI, You can generate unique pairs of questions and answers suitable for undergraduate-level exams, sourced from online USMLE materials. Each answer will be concise, within 15 words do not repeat question. The focus is on medical topics. All pairs will be stored in a JSON array',
+            'As a helpful AI, You can generate unique pairs of questions and answers suitable for undergraduate-level exams and make sure to test very knowledge of the topic without repeating concepts, sourced from online USMLE materials. Each answer will be concise, within 15 words do not repeat question. The focus is on medical topics. All pairs will be stored in a JSON array',
             prompts,
             {
               question: 'question',
@@ -53,7 +53,7 @@ export const generateQuestions = CatchAsyncErrors(
           );
         } else if (type === 'mcq') {
           questionsBatch = await strict_output(
-            'You are a helpful AI that is able to generate mcq questions and answers suitable for undergraduate-level exams, sourced from online USMLE materials. Each answer will be concise, within 15 words do not repeat question. The focus is on medical topics. All pairs will be stored in a JSON array',
+            'You are a helpful AI that is able to generate mcq questions and answers suitable for undergraduate-level exams, sourced from online USMLE materials. Each answer will be concise and make sure to test very knowledge of the topic without repeating concepts, within 15 words do not repeat question. The focus is on medical topics. All pairs will be stored in a JSON array',
             prompts,
             {
               question: 'question',
