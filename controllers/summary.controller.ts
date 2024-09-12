@@ -47,7 +47,7 @@ const cleanResponse = (content: string) => {
     .trim(); // Remove any extra spaces
 };
 
-export const generateQuestions = CatchAsyncErrors(
+export const summary = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { message: userMessage } = await req.json();
