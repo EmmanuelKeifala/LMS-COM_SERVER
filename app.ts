@@ -16,6 +16,8 @@ import {
   actionRouter,
   libraryRouter,
   notificationRouter,
+  summaryRoute,
+  chatRouter
 } from './routes';
 export const app = express();
 
@@ -40,6 +42,8 @@ app.use(
   actionRouter,
   libraryRouter,
   notificationRouter,
+  chatRouter,
+  summaryRoute
 );
 
 // Unknow api route request
