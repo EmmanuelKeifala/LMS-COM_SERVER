@@ -11,7 +11,7 @@ require('dotenv').config();
 import connectDB from './utils/db';
 
 // Create server
-app.listen(process.env.PORT, () => {
+app.listen(process.env.PORT || 5000, () => {
   connectDB();
   console.log(`Server is connected on PORT: ${process.env.PORT}`);
 });
