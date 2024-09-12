@@ -1,6 +1,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 
+const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GOOGLE_API_KEY!);
+const fileManager = new GoogleAIFileManager(
+  process.env.EXPO_PUBLIC_GOOGLE_API_KEY!
+);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+const MAX_RETRIES = 3;
+
 export const getDashboardCourses = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
        try {
