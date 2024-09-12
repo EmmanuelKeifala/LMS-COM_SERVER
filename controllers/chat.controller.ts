@@ -9,7 +9,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const MAX_RETRIES = 3;
 
-export const getDashboardCourses = CatchAsyncErrors(
+export const chat = CatchAsyncErrors(
   async (req: Request, res: Response, next: NextFunction) => {
        try {
     const { message: userMessage, userSettings, cachedFile } = await req.json();
