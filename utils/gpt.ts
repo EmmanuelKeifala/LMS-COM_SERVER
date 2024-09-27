@@ -39,33 +39,16 @@ export async function strict_output(
   num_tries: number = 10,
   verbose: boolean = false
 ): Promise<{ question: string; answer: string }[]> {
-  const list_input: boolean = Array.isArray(user_prompt);
-  const dynamic_elements: boolean = /<.*?>/.test(JSON.stringify(output_format));
-  const list_output: boolean = /\[.*?\]/.test(JSON.stringify(output_format));
-
   let error_msg: string = "";
 
   for (let i = 0; i < num_tries; i++) {
-    let output_format_prompt: string = `\nYou are to output the following in json format: ${JSON.stringify(
-      output_format
-    )}. \nDo not put quotation marks or escape character \\ in the output fields.`;
+    const formattedPrompt = `generate questions based on the topic provided \n\nQandA = {'question': string, 'answer': string, 'option1': string, 'option2': string, 'option3': string}\nReturn: Array<QandA>\n\nSystem Prompt: ${system_prompt}\nUser Prompt: ${JSON.stringify(
+      user_prompt
+    )}`;
 
-    if (list_output) {
-      output_format_prompt += `\nIf output field is a list, classify output into the best element of the list.`;
-    }
-
-    if (dynamic_elements) {
-      output_format_prompt += `\nAny text enclosed by < and > indicates you must generate content to replace it. Example input: Go to <location>, Example output: Go to the garden.`;
-    }
-
-    if (list_input) {
-      output_format_prompt += `\nGenerate a list of json, one json for each input element.`;
-    }
+    let result: any; // Declare result outside the try block
 
     try {
-      let result: any;
-
-      // Download and upload logic for PDF
       if (pdfUrl) {
         const fileName = pdfUrl.split("/").pop() || "download";
         const outputPath = `media/${fileName}.pdf`;
@@ -78,11 +61,9 @@ export async function strict_output(
           displayName: "Downloaded PDF",
         });
 
-        // Cleanup the downloaded file
         fs.unlinkSync(outputPath);
         console.log("Uploaded file deleted successfully.");
 
-        const promptToUse = `systemPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
         result = await GoogleModel.generateContent([
           {
             fileData: {
@@ -90,77 +71,39 @@ export async function strict_output(
               fileUri: uploadResponse.file.uri,
             },
           },
-          promptToUse,
+          formattedPrompt,
         ]);
       } else {
-        // Generate content without PDF
-        const promptToUse = `systemPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
-        result = await GoogleModel.generateContent(promptToUse);
+        result = await GoogleModel.generateContent(formattedPrompt);
       }
 
-      let res: string = result.response.text().replace(/'/g, '"') ?? "";
-      res = res.replace(/(\w)"(\w)/g, "$1'$2"); // Preserve apostrophes
+      const responseText = result.response.text();
 
-      if (verbose) {
-        console.log(
-          "System prompt:",
-          system_prompt + output_format_prompt + error_msg
-        );
-        console.log("\nUser prompt:", user_prompt);
-        console.log("\nGemini response:", res);
-      }
+      // Extract the JSON part from the response
+      const jsonMatch = responseText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        // Parse the extracted JSON string
+        const jsonString = jsonMatch[1].trim();
+        const output = JSON.parse(jsonString);
 
-      let output: any = JSON.parse(res);
-
-      // Ensure output matches the expected structure
-      if (list_input) {
+        // Ensure the output structure matches the expected format
         if (!Array.isArray(output)) {
-          throw new Error("Output format not in a list of json");
+          throw new Error("Output is not an array of QandA objects");
         }
+
+        return output;
       } else {
-        output = [output];
+        throw new Error("No valid JSON found in the response");
       }
-
-      for (let index = 0; index < output.length; index++) {
-        for (const key in output_format) {
-          if (/<.*?>/.test(key)) {
-            continue; // Skip dynamic keys
-          }
-
-          if (!(key in output[index])) {
-            throw new Error(`${key} not in json output`);
-          }
-
-          if (Array.isArray(output_format[key])) {
-            const choices = output_format[key] as string[];
-            if (Array.isArray(output[index][key])) {
-              output[index][key] = output[index][key][0];
-            }
-
-            if (!choices.includes(output[index][key]) && default_category) {
-              output[index][key] = default_category;
-            }
-
-            if (output[index][key].includes(":")) {
-              output[index][key] = output[index][key].split(":")[0];
-            }
-          }
-        }
-
-        // Output value handling
-        if (output_value_only) {
-          output[index] = Object.values(output[index]);
-          if (output[index].length === 1) {
-            output[index] = output[index][0];
-          }
-        }
-      }
-
-      return list_input ? output : output[0];
     } catch (e: any) {
-      error_msg = `\n\nResult: ${"res"}\n\nError message: ${e.message}`;
+      error_msg = `\n\nResult: ${
+        result?.response.text() ?? "N/A"
+      }\n\nError message: ${e.message}`;
       console.log("An exception occurred:", e);
-      console.log("Current invalid json format:", "res");
+      console.log(
+        "Current invalid json format:",
+        result?.response.text() ?? "N/A"
+      );
     }
   }
 
