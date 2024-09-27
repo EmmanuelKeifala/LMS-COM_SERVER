@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { GoogleAIFileManager } from "@google/generative-ai/server";
-
 import axios from "axios";
 require("dotenv").config();
 import fs from "fs";
@@ -39,12 +38,7 @@ export async function strict_output(
   temperature: number = 1,
   num_tries: number = 10,
   verbose: boolean = false
-): Promise<
-  {
-    question: string;
-    answer: string;
-  }[]
-> {
+): Promise<{ question: string; answer: string }[]> {
   const list_input: boolean = Array.isArray(user_prompt);
   const dynamic_elements: boolean = /<.*?>/.test(JSON.stringify(output_format));
   const list_output: boolean = /\[.*?\]/.test(JSON.stringify(output_format));
@@ -61,19 +55,19 @@ export async function strict_output(
     }
 
     if (dynamic_elements) {
-      output_format_prompt += `\nAny text enclosed by < and > indicates you must generate content to replace it. Example input: Go to <location>, Example output: Go to the garden.\nAny output key containing < and > indicates you must generate the key name to replace it. Example input: {'<location>': 'description of location'}, Example output: {school: a place for education}`;
+      output_format_prompt += `\nAny text enclosed by < and > indicates you must generate content to replace it. Example input: Go to <location>, Example output: Go to the garden.`;
     }
 
     if (list_input) {
       output_format_prompt += `\nGenerate a list of json, one json for each input element.`;
     }
 
-    // DOWNLOAD AND UPLOAD LOGIC
-
     try {
       let result: any;
+
+      // Download and upload logic for PDF
       if (pdfUrl) {
-        const fileName = pdfUrl?.split("/")?.pop()! || "download";
+        const fileName = pdfUrl.split("/").pop() || "download";
         const outputPath = `media/${fileName}.pdf`;
         console.log("Downloading PDF...");
         await downloadPDF(pdfUrl, outputPath);
@@ -83,14 +77,12 @@ export async function strict_output(
           mimeType: "application/pdf",
           displayName: "Downloaded PDF",
         });
-        fs.unlink(outputPath, (err) => {
-          if (err) {
-            console.error("Failed to delete the file:", err);
-          }
-          console.log("Uploaded file deleted successfully.");
-        });
-        const promptToUse = `systemtPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
 
+        // Cleanup the downloaded file
+        fs.unlinkSync(outputPath);
+        console.log("Uploaded file deleted successfully.");
+
+        const promptToUse = `systemPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
         result = await GoogleModel.generateContent([
           {
             fileData: {
@@ -100,17 +92,14 @@ export async function strict_output(
           },
           promptToUse,
         ]);
+      } else {
+        // Generate content without PDF
+        const promptToUse = `systemPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
+        result = await GoogleModel.generateContent(promptToUse);
       }
 
-      // Use Gemini to get a response
-      const promptToUse = `systemtPrompt=${system_prompt} + ${output_format_prompt} + ${error_msg} userPrompt=${user_prompt.toString()}`;
-
-      result = await GoogleModel.generateContent(promptToUse);
-
       let res: string = result.response.text().replace(/'/g, '"') ?? "";
-
-      // Ensure we don't replace away apostrophes in text
-      res = res.replace(/(\w)"(\w)/g, "$1'$2");
+      res = res.replace(/(\w)"(\w)/g, "$1'$2"); // Preserve apostrophes
 
       if (verbose) {
         console.log(
@@ -123,6 +112,7 @@ export async function strict_output(
 
       let output: any = JSON.parse(res);
 
+      // Ensure output matches the expected structure
       if (list_input) {
         if (!Array.isArray(output)) {
           throw new Error("Output format not in a list of json");
@@ -134,7 +124,7 @@ export async function strict_output(
       for (let index = 0; index < output.length; index++) {
         for (const key in output_format) {
           if (/<.*?>/.test(key)) {
-            continue;
+            continue; // Skip dynamic keys
           }
 
           if (!(key in output[index])) {
@@ -157,6 +147,7 @@ export async function strict_output(
           }
         }
 
+        // Output value handling
         if (output_value_only) {
           output[index] = Object.values(output[index]);
           if (output[index].length === 1) {
@@ -166,8 +157,8 @@ export async function strict_output(
       }
 
       return list_input ? output : output[0];
-    } catch (e) {
-      error_msg = `\n\nResult: ${"res"}\n\nError message: ${e}`;
+    } catch (e: any) {
+      error_msg = `\n\nResult: ${"res"}\n\nError message: ${e.message}`;
       console.log("An exception occurred:", e);
       console.log("Current invalid json format:", "res");
     }
