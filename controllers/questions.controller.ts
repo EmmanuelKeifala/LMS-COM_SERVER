@@ -18,8 +18,8 @@ export const generateQuestions = CatchAsyncErrors(
 
       // Validation
       if (!userId || !amount || !topic || !type)
-        // Check for pdfUrl
         return next(new ErrorHandler("Please provide all fields", 400));
+
       const user = await clerkClient.users.getUser(userId);
       if (!user) return next(new ErrorHandler("User not found", 400));
 
@@ -35,18 +35,19 @@ export const generateQuestions = CatchAsyncErrors(
       // Create prompts for all batches
       for (let i = 0; i < batches; i++) {
         const prompts: string[] = [];
+
         // Generate prompts for the current batch
         for (let j = 0; j < chunkSize && i * chunkSize + j < amount; j++) {
-          // Have to implement the pdfurl thingy
           prompts.push(
-            `You are to generate ${amount} a random and unique hard ${type} question this ${topic} The key thing is look over the internet and generate questions inline with internet test questions`
+            `Generate a random and unique hard ${type} question on the topic of ${topic}.`
           );
         }
+
         // Call strict_output for the current batch based on type
         let questionsBatch: any;
         if (type === "open_ended") {
           questionsBatch = await strict_output(
-            "As a helpful AI, You can generate unique pairs of questions and answers suitable for undergraduate-level exams and make sure to test very knowledge of the topic without repeating concepts, sourced from online USMLE materials. Each answer will be concise, within 15 words do not repeat question based on the file. The focus is on medical topics. All pairs will be stored in a JSON array",
+            "As a helpful AI, generate unique pairs of questions and answers suitable for undergraduate-level exams. Each answer should be concise, within 15 words. Focus on medical topics.",
             prompts,
             {
               question: "question",
@@ -56,7 +57,7 @@ export const generateQuestions = CatchAsyncErrors(
           );
         } else if (type === "mcq") {
           questionsBatch = await strict_output(
-            "You are a helpful AI that is able to generate mcq questions and answers suitable for undergraduate-level exams, sourced from online USMLE materials. Each answer will be concise and make sure to test very knowledge of the topic without repeating concepts, within 15 words do not repeat question. The focus is on medical topics. All pairs will be stored in a JSON array",
+            "You are a helpful AI that can generate MCQ questions and answers suitable for undergraduate-level exams. Each answer should be concise and relevant. Focus on medical topics.",
             prompts,
             {
               question: "question",
@@ -68,9 +69,18 @@ export const generateQuestions = CatchAsyncErrors(
             pdfUrl // Pass the pdfUrl here
           );
         }
+
         // Append the generated questions to the allQuestions array
         allQuestions = allQuestions.concat(questionsBatch);
       }
+
+      // Check if the number of questions generated meets the requested amount
+      if (allQuestions.length < amount) {
+        return next(new ErrorHandler("Not enough questions generated.", 400));
+      }
+
+      // Trim the questions to match the requested amount if necessary
+      allQuestions = allQuestions.slice(0, amount);
 
       // Return the concatenated questions array
       return res.status(200).json({
